@@ -50,7 +50,6 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
             db ? DataBase.GetUser(pack.userId) onComplete {
               case Success(DataBase.UserInfo(user)) =>
                 log.info("Auth complete id: {} \n {}", pack.userId, user)
-                qhandler ! QueueHandler.Connected(pack.userId)
                 users += (pack.userId -> AuthQueueViewer(user))
 
               case Failure(exception) => log.error("Cant get auth user {}:\n {}", pack.userId, exception)
@@ -59,6 +58,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
             }
           } else users += (pack.userId -> QueueViewer())
           log.info("User {} successfully added, users {}", pack.userId, users.keys.toString)
+          qhandler ! QueueHandler.Connected(pack.userId)
 
         case "disconnected" =>
           if(pack.isAuth)
