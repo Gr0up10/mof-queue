@@ -22,28 +22,32 @@ object QueueHandler {
 class QueueHandler(db: ActorRef, streamTime: Int) extends Actor {
   import QueueHandler._
 
+  private var protocol: ActorRef = _
+
   private val clients = ArrayBuffer[Int]()
   private val queue = mutable.Queue[Int]()
   private var currentTime = 0
   private var currentStream = -1
 
   private def updatePlaces(): Unit =
-    sender() ! UpdatePlaces(queue.toArray)
+    protocol ! UpdatePlaces(queue.toArray)
 
   def selectNext(): Unit = {
     if (queue.nonEmpty) {
       currentTime = streamTime
       val next = queue.dequeue()
-      currentStream = next
-      sender() ! SetStream(next)
       updatePlaces()
+      currentStream = next
+      protocol ! SetStream(next)
     } else currentStream = -1
   }
 
   override def receive: Receive = {
+    case "connected" => protocol = sender()
+
     case Connected(id) =>
       clients += id
-      if(currentStream > 0) sender() ! SetStream(currentStream, id)
+      if(currentStream > 0) protocol ! SetStream(currentStream, id)
 
     case Disconnected(id) =>
       clients -= id
@@ -66,7 +70,7 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor {
       }
 
       if(currentStream > 0) {
-        sender() ! SetTime(currentTime)
+        protocol ! SetTime(currentTime)
         currentTime -= 1
       }
   }

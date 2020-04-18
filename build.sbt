@@ -5,6 +5,8 @@ version := "0.1"
 
 scalaVersion := "2.13.1"
 
+scalacOptions ++= Seq("-Ymacro-annotations")
+
 libraryDependencies += "com.typesafe.akka" %% "akka-actor-typed" % "2.6.4"
 libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.6.4" % Test
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
@@ -16,6 +18,8 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-generic",
   "io.circe" %% "circe-parser"
 ).map(_ % circeVersion)
+
+libraryDependencies += "io.circe" %% "circe-generic-extras" % "0.12.2"
 
 
 libraryDependencies ++= Seq(
