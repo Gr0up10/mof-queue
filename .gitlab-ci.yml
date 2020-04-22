@@ -3,13 +3,14 @@ variables:
 
 docker-build:
   # Official docker image.
-  image: gitlab/dind:latest
+  image: maplegend/docker-sbt:latest
   stage: build
   services:
     - docker:dind
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
   script:
+    - sbt assembly
     - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" --no-cache .
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
   tags:

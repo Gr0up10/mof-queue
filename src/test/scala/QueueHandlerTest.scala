@@ -14,7 +14,7 @@ class QueueHandlerTest()
     TestKit.shutdownActorSystem(system)
   }
 
-  test("Poll handler test"){
+  test("Queue handler test"){
     import QueueHandler._
     val echo = system.actorOf(TestActors.blackholeProps)
     val queue = system.actorOf(QueueHandler.props(echo, 2))

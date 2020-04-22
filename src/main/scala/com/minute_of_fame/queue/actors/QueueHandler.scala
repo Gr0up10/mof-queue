@@ -36,9 +36,9 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor {
     if (queue.nonEmpty) {
       currentTime = streamTime
       val next = queue.dequeue()
-      updatePlaces()
       currentStream = next
       protocol ! SetStream(next)
+      updatePlaces()
     } else currentStream = -1
   }
 
