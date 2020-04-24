@@ -25,7 +25,7 @@ object JsonPackets {
 
   case class SetTime(time: Int) extends Command
   case class UpdatePlace(queue: Array[Int]) extends Command
-  case class SetStream(id: String) extends Command
+  case class SetStream(id: String, publisher: String) extends Command
 
   object CommandEncoder {
     implicit val encodeEvent: Encoder[Command] = Encoder.instance {_.asJson}

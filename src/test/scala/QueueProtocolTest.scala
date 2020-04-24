@@ -78,10 +78,10 @@ class QueueProtocolTest()
     expectMsg(packCommand(2, "set_time", JsonPackets.SetTime(10)))
 
     poll ! QueueHandler.SetStream(1, 2)
-    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123")))
+    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "")))
     poll ! QueueHandler.SetStream(1, -1)
     //expectMsg(packCommand(1, "set_stream", JsonPackets.SetStream("123")))
-    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123")))
+    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "")))
 
     poll ! QueueHandler.UpdatePlaces(Array(1))
     expectMsg(packCommand(1, "update_places", JsonPackets.UpdatePlace(Array(1))))
