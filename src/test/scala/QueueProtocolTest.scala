@@ -39,18 +39,12 @@ class QueueProtocolTest()
   def packCommand(id: Int, name: String, cmd: Command) =
     packets.Packet(id, data=CommandPacket(name, if(cmd!=null) cmd else StopStream()).asJson.noSpaces)
 
-  test("Json encoder") {
-    print(AddToQueue("321", "123").asJson.noSpaces)
-    val json = CommandPacket("queue", AddToQueue("321", "123")).asJson.noSpaces
-    assert(json == "{\"command\":\"queue\",\"data\":{\"stream_type\":\"321\",\"id\":\"123\"}}")
-  }
-
   test("Queue session packet handling") {
     poll ! packets.Packet(3, isAuth = true, data="connected")
     db.expectMsg(DataBase.GetUser(3))
     queue.expectMsg(Connected(3))
 
-    poll ! packCommand(3, "queue", AddToQueue("", "123"))
+    poll ! packCommand(3, "queue", AddToQueue("", "123", "title", "dec"))
     queue.expectMsg(QueueHandler.AddToQueue(3))
 
     poll ! packCommand(3, "stop", StopStream())
@@ -70,7 +64,7 @@ class QueueProtocolTest()
     poll ! packets.Packet(2, isAuth = true, data="connected")
     db.expectMsg(DataBase.GetUser(2))
     queue.expectMsg(Connected(2))
-    poll ! packCommand(1, "queue", AddToQueue("", "123"))
+    poll ! packCommand(1, "queue", AddToQueue("", "123", "title", "dec"))
     queue.expectMsg(QueueHandler.AddToQueue(1))
 
     poll ! QueueHandler.SetTime(10)
@@ -78,10 +72,10 @@ class QueueProtocolTest()
     expectMsg(packCommand(2, "set_time", JsonPackets.SetTime(10)))
 
     poll ! QueueHandler.SetStream(1, 2)
-    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "")))
+    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "", "title", "dec")))
     poll ! QueueHandler.SetStream(1, -1)
     //expectMsg(packCommand(1, "set_stream", JsonPackets.SetStream("123")))
-    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "")))
+    expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "", "title", "dec")))
 
     poll ! QueueHandler.UpdatePlaces(Array(1))
     expectMsg(packCommand(1, "update_places", JsonPackets.UpdatePlace(Array(1))))

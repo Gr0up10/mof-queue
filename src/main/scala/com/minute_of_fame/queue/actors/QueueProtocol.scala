@@ -4,8 +4,9 @@ import scala.util.{Failure, Success}
 import akka.pattern.ask
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
+import com.minute_of_fame.queue.actors.DataBase.SaveStream
 import com.minute_of_fame.queue.actors.QueueProtocol._
-import com.minute_of_fame.queue.models.DbModels.AuthUser
+import com.minute_of_fame.queue.models.DbModels.{AppStream, AuthUser}
 import com.minute_of_fame.queue.models.JsonPackets.{AddToQueue, Command, CommandPacket, SetStream, SetTime, StopStream, UpdatePlace}
 import com.minute_of_fame.queue.models.JsonPackets.CommandPacketDecoder._
 import io.circe._
@@ -23,7 +24,8 @@ object QueueProtocol {
   case class QueueViewer() extends StreamViewer
   abstract class AuthViewer(user: AuthUser) extends StreamViewer
   case class AuthQueueViewer(user: AuthUser) extends AuthViewer(user)
-  case class QueuePublisher(streamId: String, user: AuthUser) extends AuthViewer(user)
+  case class StreamInfo(streamId: String, title: String, description: String)
+  case class QueuePublisher(streamInfo: StreamInfo, user: AuthUser) extends AuthViewer(user)
 }
 
 class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLogging {
@@ -73,7 +75,9 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
               cmd.data match {
                 case queuePack: AddToQueue =>
                   qhandler ! QueueHandler.AddToQueue(pack.userId)
-                  users(pack.userId) = QueuePublisher(queuePack.id, users(pack.userId).asInstanceOf[AuthQueueViewer].user)
+                  users(pack.userId) =
+                    QueuePublisher(StreamInfo(queuePack.id,
+                      queuePack.title, queuePack.description), users(pack.userId).asInstanceOf[AuthQueueViewer].user)
 
                 case StopStream() =>
                   users(pack.userId) match {
@@ -96,12 +100,21 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
 
     case QueueHandler.SetStream(stream, userId) =>
       users.get(stream) match {
-        case Some(QueuePublisher(streamId, publisher)) =>
-          log.info("Set stream {} for {}", streamId, userId)
+        case Some(QueuePublisher(streamInfo, newPublisher)) =>
+          log.info("Set stream {} for {}", streamInfo.streamId, userId)
           log.info("Users {}", users.keys.toList)
-          if(userId >= 0) session ! packCommand(userId, "set_stream", SetStream(streamId, publisher.username))
+          db ! SaveStream(AppStream(
+            streamId=streamInfo.streamId,
+            publisherId=newPublisher.id,
+            title=streamInfo.title,
+            description = streamInfo.description))
+
+          val com = SetStream(streamInfo.streamId, newPublisher.username, streamInfo.title, streamInfo.description)
+          if(userId >= 0)
+            session ! packCommand(userId,
+              "set_stream", com)
           else users.keys
-            .filter(_ != publisher.id).foreach(session ! packCommand(_, "set_stream", SetStream(streamId, publisher.username)))
+            .filter(_ != newPublisher.id).foreach(session ! packCommand(_, "set_stream", com))
         case _ =>
           log.error("Can't find publisher with id {}", stream)
       }

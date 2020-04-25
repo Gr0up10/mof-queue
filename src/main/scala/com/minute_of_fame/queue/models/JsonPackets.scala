@@ -20,12 +20,12 @@ object JsonPackets {
   @ConfiguredJsonCodec case class CommandPacket(command: String, data: Command)
 
   @ConfiguredJsonCodec sealed trait Command
-  @ConfiguredJsonCodec case class AddToQueue(streamType: String, id: String) extends Command
+  @ConfiguredJsonCodec case class AddToQueue(streamType: String, id: String, title: String, description: String) extends Command
   case class StopStream() extends Command
 
   case class SetTime(time: Int) extends Command
   case class UpdatePlace(queue: Array[Int]) extends Command
-  case class SetStream(id: String, publisher: String) extends Command
+  case class SetStream(id: String, publisher: String, title: String, description: String) extends Command
 
   object CommandEncoder {
     implicit val encodeEvent: Encoder[Command] = Encoder.instance {_.asJson}
