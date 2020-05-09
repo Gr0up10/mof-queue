@@ -3,7 +3,7 @@ import akka.testkit.{ImplicitSender, TestActor, TestKit, TestProbe}
 import com.minute_of_fame.queue.actors.QueueHandler.{Connected, Disconnected}
 import com.minute_of_fame.queue.actors.{DataBase, QueueHandler, QueueProtocol}
 import com.minute_of_fame.queue.models.{DbModels, JsonPackets}
-import com.minute_of_fame.queue.models.JsonPackets.{AddToQueue, Command, CommandPacket, StopStream}
+import com.minute_of_fame.queue.models.JsonPackets.{AddToQueue, Command, CommandPacket, SetRtcStream, StopStream}
 import com.minute_of_fame.queue.models.JsonPackets.CommandPacketDecoder._
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
 import io.circe.generic.auto._
@@ -27,6 +27,8 @@ class QueueProtocolTest()
     case DataBase.GetUser(id) =>
       sender ! DataBase.UserInfo(DbModels.AuthUser(id=id))
       TestActor.KeepRunning
+
+    case s :DataBase.SaveStream => TestActor.KeepRunning
   })
   val poll = system.actorOf(QueueProtocol.props(db.ref, queue.ref))
 
@@ -72,9 +74,11 @@ class QueueProtocolTest()
     expectMsg(packCommand(2, "set_time", JsonPackets.SetTime(10)))
 
     poll ! QueueHandler.SetStream(1, 2)
+    expectMsg(packets.InternalPacket(message=CommandPacket("set_rtc_stream", SetRtcStream(1)).asJson.noSpaces))
     expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "", "title", "dec")))
     poll ! QueueHandler.SetStream(1, -1)
     //expectMsg(packCommand(1, "set_stream", JsonPackets.SetStream("123")))
+    expectMsg(packets.InternalPacket(message=CommandPacket("set_rtc_stream", SetRtcStream(1)).asJson.noSpaces))
     expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "", "title", "dec")))
 
     poll ! QueueHandler.UpdatePlaces(Array(1))

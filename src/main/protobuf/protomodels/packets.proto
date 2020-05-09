@@ -29,3 +29,8 @@ message Result {
     Status status = 1;
     string message = 2;
 }
+
+message InternalPacket {
+    string sender = 1;
+    string message = 2;
+}

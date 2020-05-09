@@ -1,6 +1,6 @@
 package com.minute_of_fame.queue.actors
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -19,7 +19,7 @@ object QueueHandler {
   case class SetTime(time: Int)
 }
 
-class QueueHandler(db: ActorRef, streamTime: Int) extends Actor {
+class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLogging {
   import QueueHandler._
 
   private var protocol: ActorRef = _
@@ -39,7 +39,11 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor {
       currentStream = next
       protocol ! SetStream(next)
       updatePlaces()
-    } else currentStream = -1
+      log.info("Select {}", next)
+    } else {
+      //log.info("No one is streaming")
+      currentStream = -1
+    }
   }
 
   override def receive: Receive = {

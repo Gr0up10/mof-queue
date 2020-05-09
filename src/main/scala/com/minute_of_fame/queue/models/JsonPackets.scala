@@ -22,6 +22,8 @@ object JsonPackets {
   @ConfiguredJsonCodec sealed trait Command
   @ConfiguredJsonCodec case class AddToQueue(streamType: String, id: String, title: String, description: String) extends Command
   case class StopStream() extends Command
+  //Internal commands
+  case class SetRtcStream(id: Int) extends Command
 
   case class SetTime(time: Int) extends Command
   case class UpdatePlace(queue: Array[Int]) extends Command

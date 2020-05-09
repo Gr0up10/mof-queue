@@ -7,7 +7,7 @@ import akka.util.Timeout
 import com.minute_of_fame.queue.actors.DataBase.SaveStream
 import com.minute_of_fame.queue.actors.QueueProtocol._
 import com.minute_of_fame.queue.models.DbModels.{AppStream, AuthUser}
-import com.minute_of_fame.queue.models.JsonPackets.{AddToQueue, Command, CommandPacket, SetStream, SetTime, StopStream, UpdatePlace}
+import com.minute_of_fame.queue.models.JsonPackets.{AddToQueue, Command, CommandPacket, SetRtcStream, SetStream, SetTime, StopStream, UpdatePlace}
 import com.minute_of_fame.queue.models.JsonPackets.CommandPacketDecoder._
 import io.circe._
 import io.circe.generic.auto._
@@ -108,7 +108,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
             publisherId=newPublisher.id,
             title=streamInfo.title,
             description = streamInfo.description))
-
+          session ! packets.InternalPacket(message=CommandPacket("set_rtc_stream", SetRtcStream(newPublisher.id)).asJson.noSpaces)
           val com = SetStream(streamInfo.streamId, newPublisher.username, streamInfo.title, streamInfo.description)
           if(userId >= 0)
             session ! packCommand(userId,

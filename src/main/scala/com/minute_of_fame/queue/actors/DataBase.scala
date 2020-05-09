@@ -23,6 +23,6 @@ class DataBase extends Actor {
 
   override def receive: Receive = {
     case GetUser(id) => sender() ! UserInfo(run(query[AuthUser].filter(_.id == lift(id))).lift(0).orNull)
-    case model: SaveStream => run(query[AppStream].insert(lift(model.stream)))
+    case model: SaveStream => run(query[AppStream].insert(lift(model.stream)).returningGenerated(_.id))
   }
 }
