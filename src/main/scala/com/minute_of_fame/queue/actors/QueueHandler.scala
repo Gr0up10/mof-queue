@@ -60,6 +60,7 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLoggin
       else updatePlaces()
 
     case AddToQueue(stream) =>
+      log.info(s"Added to queue $stream")
       queue += stream
       updatePlaces()
 

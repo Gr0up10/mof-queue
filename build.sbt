@@ -27,7 +27,7 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.postgresql" % "postgresql" % "9.4.1208"
+  "org.postgresql" % "postgresql" % "42.2.6"
 )
 
 PB.targets in Compile := Seq(
