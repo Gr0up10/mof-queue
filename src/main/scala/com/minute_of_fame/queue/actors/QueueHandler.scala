@@ -17,6 +17,7 @@ object QueueHandler {
   case class SetStream(streamId: Int, userId: Int = -1)
   case class UpdatePlaces(queue: Array[Int])
   case class SetTime(time: Int)
+  case class UpdateViewers(count: Int)
 }
 
 class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLogging {
@@ -78,5 +79,7 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLoggin
         protocol ! SetTime(currentTime)
         currentTime -= 1
       }
+
+      protocol ! UpdateViewers(clients.length)
   }
 }

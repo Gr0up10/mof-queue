@@ -5,8 +5,10 @@ import akka.pattern.ask
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import com.minute_of_fame.queue.actors.DataBase.SaveStream
+import com.minute_of_fame.queue.actors.QueueHandler.UpdateViewers
 import com.minute_of_fame.queue.actors.QueueProtocol._
 import com.minute_of_fame.queue.models.DbModels.{AppStream, AuthUser}
+import com.minute_of_fame.queue.models.JsonPackets
 import com.minute_of_fame.queue.models.JsonPackets.{AddToQueue, Command, CommandPacket, SetRtcStream, SetStream, SetTime, StopStream, UpdatePlace}
 import com.minute_of_fame.queue.models.JsonPackets.CommandPacketDecoder._
 import io.circe._
@@ -121,5 +123,8 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
 
     case QueueHandler.UpdatePlaces(queue) =>
       users.keys.foreach(session ! packCommand(_, "update_places", UpdatePlace(queue)))
+
+    case QueueHandler.UpdateViewers(count) =>
+      users.keys.foreach(session ! packCommand(_, "update_viewers", JsonPackets.UpdateViewers(count)))
   }
 }
