@@ -26,7 +26,7 @@ object JsonPackets {
   case class SetRtcStream(id: Int) extends Command
 
   case class SetTime(time: Int) extends Command
-  case class UpdatePlace(queue: Array[Int]) extends Command
+  case class UpdatePlace(queue: Array[String]) extends Command
   case class SetStream(id: String, publisher: String, title: String, description: String) extends Command
   case class UpdateViewers(count: Int) extends Command
 

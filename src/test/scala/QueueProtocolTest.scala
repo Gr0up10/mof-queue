@@ -82,8 +82,8 @@ class QueueProtocolTest()
     expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "", "title", "dec")))
 
     poll ! QueueHandler.UpdatePlaces(Array(1))
-    expectMsg(packCommand(1, "update_places", JsonPackets.UpdatePlace(Array(1))))
-    expectMsg(packCommand(2, "update_places", JsonPackets.UpdatePlace(Array(1))))
+    expectMsg(packCommand(1, "update_places", JsonPackets.UpdatePlace(Array(""))))
+    expectMsg(packCommand(2, "update_places", JsonPackets.UpdatePlace(Array(""))))
 
   }
 }

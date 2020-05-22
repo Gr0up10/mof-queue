@@ -23,15 +23,22 @@ object QueueProtocol {
   def props(db: ActorRef, qhandler: ActorRef) = Props(classOf[QueueProtocol], db, qhandler)
 
   sealed abstract class StreamViewer
+
   case class QueueViewer() extends StreamViewer
+
   abstract class AuthViewer(user: AuthUser) extends StreamViewer
+
   case class AuthQueueViewer(user: AuthUser) extends AuthViewer(user)
+
   case class StreamInfo(streamId: String, title: String, description: String)
+
   case class QueuePublisher(streamInfo: StreamInfo, user: AuthUser) extends AuthViewer(user)
+
 }
 
 class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLogging {
   implicit val timeout = Timeout(2.seconds)
+
   import context._
 
   private val users = mutable.HashMap[Int, StreamViewer]()
@@ -39,7 +46,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
   private var session: ActorRef = _
 
   def packCommand(id: Int, name: String, cmd: Command) =
-    packets.Packet(id, data=CommandPacket(name, cmd).asJson.noSpaces)
+    packets.Packet(id, data = CommandPacket(name, cmd).asJson.noSpaces)
 
   override def receive: Receive = {
     case "connected" =>
@@ -50,7 +57,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
       pack.data match {
         case "connected" =>
           session = sender()
-          if(pack.isAuth) {
+          if (pack.isAuth) {
             db ? DataBase.GetUser(pack.userId) onComplete {
               case Success(DataBase.UserInfo(user)) =>
                 log.info("Auth complete id: {} \n {}", pack.userId, user)
@@ -65,7 +72,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
           qhandler ! QueueHandler.Connected(pack.userId)
 
         case "disconnected" =>
-          if(pack.isAuth)
+          if (pack.isAuth)
             qhandler ! QueueHandler.Disconnected(pack.userId)
           users -= pack.userId
           log.info("User {} disconnected", pack.userId)
@@ -106,13 +113,13 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
           log.info("Set stream {} for {}", streamInfo.streamId, userId)
           log.info("Users {}", users.keys.toList)
           db ! SaveStream(AppStream(
-            streamId=streamInfo.streamId,
-            publisherId=newPublisher.id,
-            title=streamInfo.title,
+            streamId = streamInfo.streamId,
+            publisherId = newPublisher.id,
+            title = streamInfo.title,
             description = streamInfo.description))
-          session ! packets.InternalPacket(message=CommandPacket("set_rtc_stream", SetRtcStream(newPublisher.id)).asJson.noSpaces)
+          session ! packets.InternalPacket(message = CommandPacket("set_rtc_stream", SetRtcStream(newPublisher.id)).asJson.noSpaces)
           val com = SetStream(streamInfo.streamId, newPublisher.username, streamInfo.title, streamInfo.description)
-          if(userId >= 0)
+          if (userId >= 0)
             session ! packCommand(userId,
               "set_stream", com)
           else users.keys
@@ -122,9 +129,10 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
       }
 
     case QueueHandler.UpdatePlaces(queue) =>
-      users.keys.foreach(session ! packCommand(_, "update_places", UpdatePlace(queue)))
+      users.keys.foreach(session ! packCommand(_, "update_places",
+        UpdatePlace(queue.map(id => users.get(id).map(_.asInstanceOf[QueuePublisher].user.username).getOrElse("")))))
 
     case QueueHandler.UpdateViewers(count) =>
-      users.keys.foreach(session ! packCommand(_, "update_viewers", JsonPackets.UpdateViewers(count)))
+      users.keys.foreach(session ! packCommand(_, "update_viewers", JsonPackets.UpdateViewers(users.size)))
   }
 }

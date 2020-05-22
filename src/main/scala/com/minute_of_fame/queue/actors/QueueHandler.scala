@@ -29,6 +29,7 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLoggin
   private val queue = mutable.Queue[Int]()
   private var currentTime = 0
   private var currentStream = -1
+  private var prevViewers = 0
 
   private def updatePlaces(): Unit =
     protocol ! UpdatePlaces(queue.toArray)
@@ -42,7 +43,6 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLoggin
       updatePlaces()
       log.info("Select {}", next)
     } else {
-      //log.info("No one is streaming")
       currentStream = -1
     }
   }
@@ -80,6 +80,9 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLoggin
         currentTime -= 1
       }
 
-      protocol ! UpdateViewers(clients.length)
+      if(prevViewers != clients.length) {
+        protocol ! UpdateViewers(clients.length)
+        prevViewers = clients.length
+      }
   }
 }
