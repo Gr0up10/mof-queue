@@ -1,9 +1,14 @@
 package com.minute_of_fame.queue.actors
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.pattern.ask
+import akka.util.Timeout
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.util.{Failure, Success}
 
 object QueueHandler {
   def props(db: ActorRef, streamTime: Int = 40) = Props(classOf[QueueHandler], db, streamTime)
@@ -22,6 +27,8 @@ object QueueHandler {
 
 class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLogging {
   import QueueHandler._
+  implicit val timeout: Timeout = Timeout(3, TimeUnit.SECONDS)
+  import context._
 
   private var protocol: ActorRef = _
 
@@ -34,17 +41,27 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLoggin
   private def updatePlaces(): Unit =
     protocol ! UpdatePlaces(queue.toArray)
 
-  def selectNext(): Unit = {
-    if (queue.nonEmpty) {
-      currentTime = streamTime
-      val next = queue.dequeue()
-      currentStream = next
-      protocol ! SetStream(next)
-      updatePlaces()
-      log.info("Select {}", next)
-    } else {
-      currentStream = -1
+  def selectNext(force: Boolean = false): Unit = {
+    db ? DataBase.GetCurrentLikeDislikeRatio() onComplete {
+      case Success(ratio: Double) =>
+        log.info("Like/Dislike = {}", ratio)
+        if(ratio < 0.5 || force) {
+          if (queue.nonEmpty) {
+            currentTime = streamTime
+            val next = queue.dequeue()
+            currentStream = next
+            protocol ! SetStream(next)
+            updatePlaces()
+            log.info("Select {}", next)
+          } else {
+            log.info("No more people in the queue")
+            currentStream = -1
+          }
+        } else currentTime = streamTime
+      case Failure(exception) => log.error("Exception while getting ratio {}", exception)
+      case other => log.error("Got incorrect data type {}", other)
     }
+
   }
 
   override def receive: Receive = {
@@ -57,27 +74,29 @@ class QueueHandler(db: ActorRef, streamTime: Int) extends Actor with ActorLoggin
     case Disconnected(id) =>
       clients -= id
       queue.dequeueFirst(_ == id)
-      if(id == currentStream) selectNext()
+      if(id == currentStream) selectNext(true)
       else updatePlaces()
 
     case AddToQueue(stream) =>
       log.info(s"Added to queue $stream")
       queue += stream
       updatePlaces()
+      if(currentStream == -1) selectNext(true)
 
     case StopStream(id) =>
       queue.dequeueFirst(_ == id)
-      if(id == currentStream) selectNext()
+      if(id == currentStream) selectNext(true)
       else updatePlaces()
 
     case Tick() =>
-      if(currentTime == 0) {
+      if(currentTime == 0 && currentStream != -1) {
         selectNext()
       }
 
       if(currentStream > 0) {
         protocol ! SetTime(currentTime)
         currentTime -= 1
+        log.info("Current time: {}; Stream id: {}; Queue: {}", currentTime, currentStream, queue.mkString)
       }
 
       if(prevViewers != clients.length) {

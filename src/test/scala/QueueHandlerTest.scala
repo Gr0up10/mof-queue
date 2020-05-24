@@ -1,6 +1,7 @@
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestActors, TestKit}
-import com.minute_of_fame.queue.actors.QueueHandler
+import akka.actor.{ActorRef, ActorSystem}
+import akka.testkit.{ImplicitSender, TestActor, TestActors, TestKit, TestProbe}
+import com.minute_of_fame.queue.actors.{DataBase, QueueHandler}
+import com.minute_of_fame.queue.models.DbModels
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
 
 class QueueHandlerTest()
@@ -16,16 +17,21 @@ class QueueHandlerTest()
 
   test("Queue handler test"){
     import QueueHandler._
-    val echo = system.actorOf(TestActors.blackholeProps)
-    val queue = system.actorOf(QueueHandler.props(echo, 2))
+    val db = TestProbe()
+    db.setAutoPilot((sender: ActorRef, msg: Any) => msg match {
+      case DataBase.GetCurrentLikeDislikeRatio() =>
+        sender ! 0.toDouble
+        TestActor.KeepRunning
+    })
+    val queue = system.actorOf(QueueHandler.props(db.ref, 2))
     queue ! "connected"
     queue ! Tick()
 //    expectMsg(QueueHandler.UpdateViewers(0))
     queue ! AddToQueue(1)
     var msg = expectMsgClass(classOf[UpdatePlaces])
     assert(msg.queue.sameElements(Array(1)))
-    queue ! Tick()
     expectMsg(SetStream(1))
+    queue ! Tick()
     msg = expectMsgClass(classOf[UpdatePlaces])
     assert(msg.queue.isEmpty)
     expectMsg(SetTime(2))
@@ -42,10 +48,11 @@ class QueueHandlerTest()
     expectMsg(SetTime(1))
     expectMsg(QueueHandler.UpdateViewers(1))
     queue ! Tick()
+    expectMsg(SetTime(0))
     expectMsg(SetStream(2))
     msg = expectMsgClass(classOf[UpdatePlaces])
     assert(msg.queue.sameElements(Array(3)))
-    expectMsg(SetTime(2))
+    //expectMsg(SetTime(2))
     //expectMsg(QueueHandler.UpdateViewers(1))
     queue ! StopStream(2)
     expectMsg(SetStream(3))

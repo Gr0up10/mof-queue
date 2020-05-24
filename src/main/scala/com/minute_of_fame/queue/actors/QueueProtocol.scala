@@ -26,13 +26,13 @@ object QueueProtocol {
 
   case class QueueViewer() extends StreamViewer
 
-  abstract class AuthViewer(user: AuthUser) extends StreamViewer
+  abstract class AuthViewer(val user: AuthUser) extends StreamViewer
 
-  case class AuthQueueViewer(user: AuthUser) extends AuthViewer(user)
+  case class AuthQueueViewer(override val user: AuthUser) extends AuthViewer(user)
 
   case class StreamInfo(streamId: String, title: String, description: String)
 
-  case class QueuePublisher(streamInfo: StreamInfo, user: AuthUser) extends AuthViewer(user)
+  case class QueuePublisher(streamInfo: StreamInfo, override val user: AuthUser) extends AuthViewer(user)
 
 }
 
@@ -86,7 +86,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
                   qhandler ! QueueHandler.AddToQueue(pack.userId)
                   users(pack.userId) =
                     QueuePublisher(StreamInfo(queuePack.id,
-                      queuePack.title, queuePack.description), users(pack.userId).asInstanceOf[AuthQueueViewer].user)
+                      queuePack.title, queuePack.description), users(pack.userId).asInstanceOf[AuthViewer].user)
 
                 case StopStream() =>
                   users(pack.userId) match {
