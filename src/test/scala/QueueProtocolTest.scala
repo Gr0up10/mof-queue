@@ -79,6 +79,7 @@ class QueueProtocolTest()
     poll ! QueueHandler.SetStream(1, -1)
     //expectMsg(packCommand(1, "set_stream", JsonPackets.SetStream("123")))
     expectMsg(packets.InternalPacket(message=CommandPacket("set_rtc_stream", SetRtcStream(1)).asJson.noSpaces))
+    expectMsg(packCommand(1, "set_stream", JsonPackets.SetStream("123", "", "title", "dec")))
     expectMsg(packCommand(2, "set_stream", JsonPackets.SetStream("123", "", "title", "dec")))
 
     poll ! QueueHandler.UpdatePlaces(Array(1))

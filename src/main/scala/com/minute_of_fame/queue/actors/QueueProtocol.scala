@@ -122,8 +122,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
           if (userId >= 0)
             session ! packCommand(userId,
               "set_stream", com)
-          else users.keys
-            .filter(_ != newPublisher.id).foreach(session ! packCommand(_, "set_stream", com))
+          else users.keys.foreach(session ! packCommand(_, "set_stream", com))
         case _ =>
           log.error("Can't find publisher with id {}", stream)
       }
