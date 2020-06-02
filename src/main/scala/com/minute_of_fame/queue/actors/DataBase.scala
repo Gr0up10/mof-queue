@@ -1,7 +1,7 @@
 package com.minute_of_fame.queue.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
-import com.minute_of_fame.queue.actors.DataBase.{GetCurrentLikeDislikeRatio, GetUser, SaveStream, UserInfo}
+import com.minute_of_fame.queue.actors.DataBase.{GetCurrentLikeDislikeRatio, GetUser, SaveStream, SaveViews, UserInfo}
 import com.minute_of_fame.queue.models.DbModels._
 import io.getquill.context.jdbc.{Decoders, Encoders}
 import io.getquill.{Literal, PostgresJdbcContext}
@@ -13,6 +13,7 @@ object DataBase {
   case class GetUser(id: Int)
   case class SaveStream(stream: AppStream)
   case class GetCurrentLikeDislikeRatio()
+  case class SaveViews(count: Int)
 
   case class UserInfo(user: AuthUser)
 }
@@ -26,6 +27,9 @@ class DataBase extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case GetUser(id) => sender() ! UserInfo(run(query[AuthUser].filter(_.id == lift(id))).lift(0).orNull)
+
+    case SaveViews(count) =>
+      run(query[AppStream].filter(_.id == lift(currentStreamId)).update(_.views -> lift(count)))
 
     case model: SaveStream =>
       log.info(s"Saving stream ${model.stream}")

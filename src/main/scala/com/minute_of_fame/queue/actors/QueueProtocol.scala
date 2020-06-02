@@ -4,7 +4,7 @@ import scala.util.{Failure, Success}
 import akka.pattern.ask
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
-import com.minute_of_fame.queue.actors.DataBase.SaveStream
+import com.minute_of_fame.queue.actors.DataBase.{SaveStream, SaveViews}
 import com.minute_of_fame.queue.actors.QueueHandler.UpdateViewers
 import com.minute_of_fame.queue.actors.QueueProtocol._
 import com.minute_of_fame.queue.models.DbModels.{AppStream, AuthUser}
@@ -42,6 +42,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
   import context._
 
   private val users = mutable.HashMap[Int, StreamViewer]()
+  private var maxViews = 0
 
   private var session: ActorRef = _
 
@@ -112,6 +113,8 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
         case Some(QueuePublisher(streamInfo, newPublisher)) =>
           log.info("Set stream {} for {}", streamInfo.streamId, userId)
           log.info("Users {}", users.keys.toList)
+          db ! SaveViews(maxViews)
+          maxViews = 0
           db ! SaveStream(AppStream(
             streamId = streamInfo.streamId,
             publisherId = newPublisher.id,
@@ -132,6 +135,7 @@ class QueueProtocol(db: ActorRef, qhandler: ActorRef) extends Actor with ActorLo
         UpdatePlace(queue.map(id => users.get(id).map(_.asInstanceOf[QueuePublisher].user.username).getOrElse("")))))
 
     case QueueHandler.UpdateViewers(count) =>
+      maxViews = maxViews.max(users.size)
       users.keys.foreach(session ! packCommand(_, "update_viewers", JsonPackets.UpdateViewers(users.size)))
   }
 }
