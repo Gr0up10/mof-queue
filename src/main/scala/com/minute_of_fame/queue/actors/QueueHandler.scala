@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Success}
 
 object QueueHandler {
-  def props(db: ActorRef, streamTime: Int = 40) = Props(classOf[QueueHandler], db, streamTime)
+  def props(db: ActorRef, streamTime: Int = 60) = Props(classOf[QueueHandler], db, streamTime)
 
   case class Connected(id: Int)
   case class AddToQueue(id: Int)
